@@ -1,8 +1,8 @@
 /*
 * File:			jquery.dataTables.dtColumnFilter.js
-* Version:		2.0
+* Version:		1.0
 * Author:		Assaf Moldavsky
-* URL:			http://github.com/amoldavsky/dtColumnFilter2 
+* URL:			http://github.com/amoldavsky/dtColumnFilter 
 * 
 * Copyright 2014-2015 Assaf Moldavsky, all rights reserved.
 *
@@ -14,14 +14,17 @@
 * 
 * This is a re-work of the jqery.datatables.columnFilter.js originally written by
 * Jovan Popovic. The original plugin is no longer supported and does not work
-* with the new DT versions ( 1.10+ ). 
+* with the new DT versions ( 1.10+ ). This code let's you use the plugin with
+* DataTables 1.10+. It should be backward compatible, meaning that existing code
+* should work just fine.
 * 
-* This is a complete rework of the original plugin employing better Javascript practices,
-* impoved structure, documentation, and performance.
+* In addition, the original plugin had a lot of design flows and employed some horrible Javascript
+* practices. On top, some performance optimizations and better structures were put in place.
 * 
-* I simpley needed this to work for my implementation and reworked the plugin
-* to work with DataTables 1.10+. I thought that others may be also looking for a newer
-* version that is in good working order so here you go.
+* Since this version was only meant to be backward compatible it does not utilize the new
+* DataTables API and some better Javascript structures. If you want the latest and the 
+* greatest refer to version 2.0 here:
+* http://github.com/amoldavsky/dtColumnFilter2/
 * 
 * The original plugin by Jovan Popovic can be found here:
 * http://code.google.com/p/jquery-datatables-column-filter/
@@ -30,8 +33,13 @@
 * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
 * or FITNESS FOR A PARTICULAR PURPOSE. 
 * 
-* @author 	Assaf Moldavsky
-* @verison	2.0
+* Parameters:"
+* @sPlaceHolder                 String      Place where inline filtering function should be placed ("tfoot", "thead:before", "thead:after"). Default is "tfoot"
+* @sRangeSeparator              String      Separator that will be used when range values are sent to the server-side. Default value is "~".
+* @sRangeFormat                 string      Default format of the From ... to ... range inputs. Default is From {from} to {to}
+* @aoColumns                    Array       Array of the filter settings that will be applied on the columns
+* 
+* @Deprecated Use version 2.0 of the plugin
 */
 (function ($) {
 
