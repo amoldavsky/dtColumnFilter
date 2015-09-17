@@ -35,6 +35,14 @@
 */
 (function ($) {
 
+	/* 
+	 * TODO: convert a filter into an object so that each filter can update or rebuild tself without
+	 * rebuilding the entire row
+	 */ 
+	
+	/* 
+	 * TODO: breakdown the filter creator function ( fnCreateSelect, fnCreateInput ... etc )
+	 */
 
     $.fn.columnFilter = function ( options ) {
 
@@ -45,69 +53,71 @@
         var aiCustomSearch_Indexes = new Array();
 
         var oFunctionTimeout = null;
-
+        
+        // TODO: expose outside through the options
         var fnOnFiltered = function () { };
 
+        // TODO: add JSDoc
         function _fnGetColumnValues(oSettings, iColumn, bUnique, bFiltered, bIgnoreEmpty) {
-            ///<summary>
-            ///Return values in the column
-            ///</summary>
-            ///<param name="oSettings" type="Object">DataTables settings</param>
-            ///<param name="iColumn" type="int">Id of the column</param>
-            ///<param name="bUnique" type="bool">Return only distinct values</param>
-            ///<param name="bFiltered" type="bool">Return values only from the filtered rows</param>
-            ///<param name="bIgnoreEmpty" type="bool">Ignore empty cells</param>
-
+        	
             // check that we have a column id
-            if (typeof iColumn == "undefined") return new Array();
+            if (typeof iColumn == "undefined") return new Array(); // TODO: assaf: wtf is this crap?? revisit, looks bad
 
             // by default we only wany unique data
-            if (typeof bUnique == "undefined") bUnique = true;
+            var bUnique = (typeof bUnique == "boolean") ? bUnique : true;
 
             // by default we do want to only look at filtered data
-            if (typeof bFiltered == "undefined") bFiltered = true;
+            var bFiltered = (typeof bFiltered == "boolean") ? bFiltered : true;
 
             // by default we do not wany to include empty values
-            if (typeof bIgnoreEmpty == "undefined") bIgnoreEmpty = true;
+            var bIgnoreEmpty = (typeof bIgnoreEmpty == "boolean") ? bIgnoreEmpty : true;
 
             // list of rows which we're going to loop through
             var aiRows;
-
-            // use only filtered rows
-            if (bFiltered == true) aiRows = oSettings.aiDisplay;
-            // use all rows
-            else aiRows = oSettings.aiDisplayMaster; // all row numbers
+            if ( bFiltered ) { // use only filtered rows
+            	
+            	aiRows = oSettings.aiDisplay; // use all rows
+            	 
+            } else { 
+            	
+            	aiRows = oSettings.aiDisplayMaster; // all row numbers
+            	
+            }
 
             // set up data array	
             var asResultData = new Array();
 
-            for (var i = 0, c = aiRows.length; i < c; i++) {
-                var iRow = aiRows[i];
-                var aData = oTable.fnGetData(iRow);
-                var sValue = aData[iColumn];
+            $.each( aiRows, function( idx, val ) {
+            	
+                var aData = oTable.fnGetData( val );
+                var sValue = aData[ iColumn ];
 
                 // ignore empty values?
-                if (bIgnoreEmpty == true && sValue.length == 0) continue;
-
+                if ( bIgnoreEmpty && sValue.length == 0 ) { 
+                	return;
+                }
+                
                 // ignore unique values?
-                else if (bUnique == true && jQuery.inArray(sValue, asResultData) > -1) continue;
+                if (bUnique == true && jQuery.inArray(sValue, asResultData) > -1) {
+                	return;
+                }
 
-                // else push the value onto the result data array
-                else asResultData.push(sValue);
-            }
+                asResultData.push(sValue);
+            })
 
             return asResultData.sort();
         }
 
+        // TODO: add JSDoc
         function _fnColumnIndex(iColumnIndex) {
-            if (properties.bUseColVis)
+            if (properties.bUseColVis) {
                 return iColumnIndex;
-            else
+            } else {
                 return oTable.fnSettings().oApi._fnVisibleToColumnIndex(oTable.fnSettings(), iColumnIndex);
-            //return iColumnIndex;
-            //return oTable.fnSettings().oApi._fnColumnIndexToVisible(oTable.fnSettings(), iColumnIndex);
+            }
         }
 
+        // TODO: refactor
         var delay = (function(){
         	var timer = 0;
         	return function(callback, callbackParams, ms){
@@ -860,6 +870,7 @@
             length: oTable.fnSettings().aoPreSearchCols.length
         }).map(function () { return null });
         
+        /*
         function Filter() {
         	
         	return {
@@ -870,6 +881,7 @@
                 iFilterLength: 0
         	};
         };
+        */
         
         var FILTER_TYPE_TEXT = "test";
         var FILTER_TYPE_NUMBER = "number";
@@ -899,27 +911,9 @@
                 if( !aoColumn ) {
                 	return;
                 }
-                /*
-                if( !aoColumn ) {
-                	aoColumn = new Filter();
-                }*/
                 
                 var label = $($(this)[0].cell).text();
                 var th = $( filterRow[0].cells[ idx ] );
-                /* TODO: assaf: I do not want to expose the selector of the filer, this is a private detail
-                if ( aoColumn.sSelector == null ) {
-                    
-                    th = $( filterRow[0].cells[ idx ] );
-                    
-                } else {
-                	
-                    th = $(aoColumn.sSelector);
-                    
-                    if (th.length == 0) {
-                    	th = $( filterRow[0].cells[ idx ] );
-                    }
-                }
-                */
                 
                 if (aoColumn.sRangeFormat != null) {
                     sRangeFormat = aoColumn.sRangeFormat;
