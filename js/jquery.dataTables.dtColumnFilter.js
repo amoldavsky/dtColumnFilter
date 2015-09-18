@@ -1,9 +1,10 @@
-/*
+/**
 * File:			jquery.dataTables.dtColumnFilter.js
 * Version:		2.0
 * Author:		Assaf Moldavsky
-* URL:			http://github.com/amoldavsky/dtColumnFilter2 
+* URL:			http://github.com/amoldavsky/dtColumnFilter
 * 
+* ------------------------------------------------------------------
 * Copyright 2014-2015 Assaf Moldavsky, all rights reserved.
 *
 * This source file is free software, under either the GPL v2 license or a
@@ -16,16 +17,13 @@
 * Jovan Popovic. The original plugin is no longer supported and does not work
 * with the new DT versions ( 1.10+ ). 
 * 
-* This is a complete rework of the original plugin employing better Javascript practices,
-* impoved structure, documentation, and performance.
-* 
-* I simpley needed this to work for my implementation and reworked the plugin
-* to work with DataTables 1.10+. I thought that others may be also looking for a newer
-* version that is in good working order so here you go.
-* 
 * The original plugin by Jovan Popovic can be found here:
 * http://code.google.com/p/jquery-datatables-column-filter/
 * 
+* This is a complete rework of the original plugin employing better Javascript practices,
+* improved structure, documentation, and performance.
+* 
+
 * This source file is distributed in the hope that it will be useful, but 
 * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
 * or FITNESS FOR A PARTICULAR PURPOSE. 
@@ -298,7 +296,11 @@
     	})();
     	
     	// create filters and add to DOM
-    	(function( dtInstance, filterColumns, filterTR ) {
+    	var _filters = (function( dtInstance, filterColumns, filterTR ) {
+    		
+    		var _filters = Array.apply(null, {
+                length: _dtInstance.settings()[0].aoPreSearchCols.length
+            }).map(function () { return null });
     		
     		$( filterColumns ).each(function ( idx, filterDefs ) {
     			
@@ -322,7 +324,7 @@
     	    					var isSmart = false;
     	    					var isCaseInsensative = true;
     	    					
-    	    					Timer.queue( "FILTER_TYPE_TEXT", function () {
+    	    					Timer.queue( "FILTER_TYPE_" + filterDefs.type, function () {
     	    						
     	    						dtInstance.columns( idx ).search( newValue, regex, isSmart, isCaseInsensative ).draw();
     	    						
@@ -331,6 +333,8 @@
     	    				}
     	    			});
     			$( filterTR[0].cells[ idx ] ).append( filter.DOMElem );
+    			
+    			_filters[ idx ] = filter;
                 
     		});
     		
@@ -345,20 +349,130 @@
             }
             */
     		
+    		return _filters;
+    		
     	})( _dtInstance, options.filterColumns, _filterElem );
     	
-    	return {
-    		/**
+    	
+    	/*
+    	 * Feature to automatically sync up the filters if the DT search has been ran
+    	 * outside of our universe. For example, another plugin might have triggered search.
+    	 */
+    	(function( dt ) {
+        	
+        	var _search = dt.search;
+        	//dt.on( 'search.dt', function (e) {
+        	dt.on( 'xhr.dt', function ( e, settings, json, xhr ) {
+        		
+        		var data = null;
+        		
+        		if( options.ajax && typeof options.ajax.dataSrc === 'function' ) {
+        			
+        			data = options.ajax.dataSrc( json );
+        			
+        		} else {
+        			
+        			data = json.dtColumnFilter;
+        			
+        		}
+        		
+        		if( data && data.length ) {
+        			_api.updateFilters( data );
+        		}
+        		
+        	} );
+        	
+        })( dtInstance );
+    	
+    	var _api = {
+			/**
     		 * This will update the columnFilters give a new set of options.
     		 * Typically good when the column definitions change and the filters 
     		 * need to reflect the current state.
+    		 * @param	filterDefs		the new options to work against
     		 */
-    		updateFilters( newOptions ) {
+			updateFilters: function( filterDefs ) {
+    			
+    			// TODO
+				console.log( filterDefs );
+				
+	        	var isDataReloadRequired = false;
+	        	$.each( filterDefs, function( idx, filterDef ) {
+	        		if( !filterDef ) return;
+	        		
+	        		if( (filter = _filters[ idx ]) ) {
+	        			
+	        			var filterElem = filter.DOMElem;
+	        			
+	        			// TODO: check if the value in the search can be more then one member and if it used for the range filters
+	        			var currentSearch = _dtInstance.columns( idx ).search();
+	        			var currentColumnSearchValue = currentSearch[0] || null;
+	        			
+	        			// let's make sure that the value we are tryign to set the filter to is in new possible values.
+	        			// for instance if we filter using the a dropdown and for whatever reason
+	        			// one of the existing values is no longer existing on the backend, we
+	        			// want to not only update ourselves but also re-set this filter to default
+	        			if( filterDef.type === Filter.FILTER_TYPE_SELECT ) {
+		        			
+	        				var isCurrentValueFoundInOptions = false;
+		    				for( var i = 0, len = filterDef.values.length; i < len; i++ ) {
+		    					
+		    					var value = filterDef.values[ i ].value;
+		    					// TODO: make sure that all values default to "null" on the backend
+		    					if( value == currentColumnSearchValue ) {
+		    						isCurrentValueFoundInOptions = true;
+		    						break;
+		    					}
+		    					
+		    				}
+		    				if( !isCurrentValueFoundInOptions ) {
+		    					
+		    					// reset this filter value to default ( the first value in the Array )
+		    					//settings.aoPreSearchCols[ idx ].sSearch = aoColumn.values[ 0 ].value;
+		    					
+		    					// make sure we refetch the data to the entire table
+		    					isDataReloadRequired = true;
+		    					
+		    					_dtInstance.columns( idx ).search( aoColumn.values[ 0 ].value );
+		    					
+		    				}
+		    				
+		    				//$( filterElem ).val( settings.aoPreSearchCols[ idx ].sSearch );
+		    				
+	        			} else {
+	        			
+		        			// set the correct value
+		        			//$( filterElem ).val( settings.aoPreSearchCols[ idx ].sSearch );
+		        			
+	        			}
+	        		};
+	        		
+	        	});
+	        	
+	        	if( isDataReloadRequired ) {
+	        		
+	        		//_table.DataTable().columns().search().draw();
+	        		_dtInstance.draw();
+	        		
+	        	}
+    			
+    		},
+    		
+    		/**
+    		 * A destroyer function to destroy the current instance
+    		 */
+    		destroy: function() {
     			
     			// TODO
     			
     		}
     	}
+    	
+    	return $.extend( _api, {
+    		
+    		// maybe we will add somethign here...
+    		
+    	});
     };
     
     // We do not support the older API
